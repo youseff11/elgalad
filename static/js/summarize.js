@@ -154,7 +154,18 @@
     show("loading"); animateSteps();
     if (window.innerWidth < 1080) resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
 
-    var r = await El.api("/app/api/summarize/", { body: { text: text, params: getParams(), file_name: fileName } });
+    var params = getParams();
+    var r = await El.api("/app/api/summarize/", { body: { text: text, params: params, file_name: fileName } });
+    if (!r.ok && r.fallback) {
+      // Django server can't reach the model → call it from the browser, then save on the server
+      var m = await El.modelCall(r.base_url, "/api/v1/summarize", Object.assign({ text: text }, params));
+      if (m.ok) {
+        r = await El.api("/app/api/summarize/save/", { body: { text: text, params: params, file_name: fileName, data: m.data, latency_ms: m.latency_ms } });
+      } else {
+        El.logCall(m);
+        r = { ok: false, error: m.error };
+      }
+    }
 
     clearInterval(stepTimer);
     busy = false;

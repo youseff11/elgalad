@@ -407,13 +407,18 @@ T = {
     "err_file_too_large": {"ar": "حجم الملف أكبر من 10 ميجابايت", "en": "File is larger than 10 MB"},
     "err_file_empty": {"ar": "لم يتم العثور على نص في الملف", "en": "No text found in the file"},
     "err_file_missing_lib": {"ar": "مكتبة قراءة الملف غير مثبتة (pip install -r requirements.txt)", "en": "File reader library missing (pip install -r requirements.txt)"},
+    "err_model_unreachable": {
+        "ar": "تعذّر الوصول لخادم النموذج — تأكد أن النموذج يعمل وأن رابط trycloudflare صحيح (الإعدادات ← نموذج الذكاء الاصطناعي).",
+        "en": "Could not reach the model server — make sure it is running and the trycloudflare URL is correct (Settings → AI model).",
+    },
+    "err_timeout_short": {"ar": "انتهت مهلة انتظار رد النموذج", "en": "The model took too long to respond"},
     "err_file_read": {"ar": "تعذّرت قراءة الملف", "en": "Could not read the file"},
 }
 
 # Keys the front-end JavaScript needs (exported via json_script in base.html)
 JS_KEYS = [
     "copied", "fav_added", "fav_removed", "checking", "model_online", "model_offline", "model_not_loaded",
-    "err_network", "err_server", "err_empty", "err_too_short", "err_batch_limit", "err_file_read",
+    "err_network", "err_server", "err_model_unreachable", "err_timeout_short", "err_empty", "err_too_short", "err_batch_limit", "err_file_read",
     "lang_ar", "lang_en", "lang_mixed", "lang_unknown", "words", "chars", "sec", "confidence",
     "response_time", "ratio_caption", "summary_ready", "file_loaded", "documents", "doc_placeholder",
     "remove", "open_details", "batch_done", "tool_detect", "tool_clean", "tool_tokenize",

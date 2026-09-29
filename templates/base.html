@@ -33,7 +33,7 @@
     </script>
   {% endif %}
   {{ JS_I18N|json_script:"i18n-data" }}
-  <script src="{% static 'js/app.js' %}"></script>
+  <script src="{% static 'js/app.js' %}?v=2"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

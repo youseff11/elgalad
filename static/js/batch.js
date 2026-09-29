@@ -98,7 +98,17 @@
     errBox.hidden = true;
     if (!texts.length) { El.toast(t("err_empty"), "error"); return; }
     runBtn.classList.add("is-loading");
-    var r = await El.api("/app/api/batch/", { body: { texts: texts, params: params() } });
+    var p = params();
+    var r = await El.api("/app/api/batch/", { body: { texts: texts, params: p } });
+    if (!r.ok && r.fallback) {
+      var m = await El.modelCall(r.base_url, "/api/v1/summarize/batch", Object.assign({ texts: texts }, p), 600000);
+      if (m.ok) {
+        r = await El.api("/app/api/batch/save/", { body: { texts: texts, params: p, data: m.data, latency_ms: m.latency_ms } });
+      } else {
+        El.logCall(m);
+        r = { ok: false, error: m.error };
+      }
+    }
     runBtn.classList.remove("is-loading");
     if (!r.ok) {
       errBox.querySelector("span").textContent = r.error || t("err_server");

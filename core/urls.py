@@ -28,7 +28,10 @@ urlpatterns = [
 
     # internal JSON endpoints used by the UI
     path("app/api/summarize/", views.api_summarize, name="api_summarize"),
+    path("app/api/summarize/save/", views.api_summarize_save, name="api_summarize_save"),
     path("app/api/batch/", views.api_batch, name="api_batch"),
+    path("app/api/batch/save/", views.api_batch_save, name="api_batch_save"),
+    path("app/api/log/", views.api_log_call, name="api_log_call"),
     path("app/api/tool/<str:tool>/", views.api_tool, name="api_tool"),
     path("app/api/extract/", views.api_extract, name="api_extract"),
     path("app/api/health/", views.api_health_json, name="api_health"),

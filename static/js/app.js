@@ -56,6 +56,39 @@
     return data;
   }
 
+  // ------------------------------------------------- direct model calls
+  // Used when the Django server can't reach the model itself (e.g. PythonAnywhere
+  // free plan only allows whitelisted sites). The browser has no such limit.
+  async function modelCall(baseUrl, path, payload, timeoutMs) {
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs || 180000) : null;
+    var started = performance.now();
+    var out = { ok: false, status: null, data: {}, error: "", latency_ms: 0, endpoint: path };
+    try {
+      var resp = await fetch(String(baseUrl).replace(/\/+$/, "") + path, {
+        method: payload ? "POST" : "GET",
+        headers: payload ? { "Content-Type": "application/json", "Accept": "application/json" } : { "Accept": "application/json" },
+        body: payload ? JSON.stringify(payload) : undefined,
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+      out.status = resp.status;
+      try { out.data = await resp.json(); } catch (e) { out.data = {}; }
+      out.ok = resp.ok && out.data.success !== false;
+      if (!out.ok) {
+        var d = out.data.detail;
+        out.error = typeof d === "string" ? d : Array.isArray(d) ? d.map(function (x) { return x.msg; }).join("; ") : "HTTP " + resp.status;
+      }
+    } catch (e) {
+      out.error = e && e.name === "AbortError" ? t("err_timeout_short") : t("err_model_unreachable");
+    }
+    if (timer) clearTimeout(timer);
+    out.latency_ms = Math.round((performance.now() - started) * 100) / 100;
+    return out;
+  }
+  function logCall(m) {
+    api("/app/api/log/", { body: { endpoint: m.endpoint, ok: m.ok, latency_ms: m.latency_ms, status: m.status, error: m.error } });
+  }
+
   // -------------------------------------------------------------- toasts
   function toast(text, level) {
     var box = document.getElementById("toasts");
@@ -156,6 +189,14 @@
       if (lbl) lbl.textContent = t("checking");
     });
     var r = await api("/app/api/health/" + (force === true ? "?force=1" : ""));
+    if (!r.reachable && r.base_url) {
+      // server can't reach the model → check from the browser instead
+      var h = await modelCall(r.base_url, "/health", null, 15000);
+      if (h.ok) {
+        var info = await modelCall(r.base_url, "/", null, 15000);
+        r = { ok: h.data.model_loaded !== false, reachable: true, latency_ms: h.latency_ms, info: info.ok ? info.data : {}, via: "browser" };
+      }
+    }
     healthBusy = false;
     var ok = !!r.ok;
     var state = ok ? "ok" : "bad";
@@ -202,5 +243,6 @@
   });
 
   // expose helpers for page scripts
-  window.El = { t: t, api: api, toast: toast, fmt: fmt, words: words, escapeHtml: escapeHtml, detectLangLocal: detectLangLocal };
+  window.El = { t: t, api: api, toast: toast, fmt: fmt, words: words, escapeHtml: escapeHtml, detectLangLocal: detectLangLocal,
+                modelCall: modelCall, logCall: logCall };
 })();

@@ -75,6 +75,20 @@
     if (!text) { El.toast(t("err_empty"), "error"); input.focus(); return; }
     runBtn.classList.add("is-loading");
     var r = await El.api("/app/api/tool/" + current + "/", { body: { text: text, language: hint.value } });
+    if (!r.ok && r.fallback) {
+      var paths = { detect: "/api/v1/detect-language", clean: "/api/v1/clean-text", tokenize: "/api/v1/tokenize" };
+      var payload = { text: text };
+      if (current !== "detect" && hint.value) payload.language = hint.value;
+      var m = await El.modelCall(r.base_url, paths[current], payload);
+      El.logCall(m);
+      if (m.ok) {
+        var lang = m.data.language || m.data.language_applied;
+        if (lang) m.data.language_label = t("lang_" + lang);
+        r = { ok: true, result: m.data, latency_ms: m.latency_ms };
+      } else {
+        r = { ok: false, error: m.error };
+      }
+    }
     runBtn.classList.remove("is-loading");
     if (!r.ok) {
       out.innerHTML = '<div class="alert alert-danger">' + El.escapeHtml(r.error || t("err_server")) + "</div>";

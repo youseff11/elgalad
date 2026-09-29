@@ -103,7 +103,9 @@ class SummarizerClient:
             result.error = str(exc)[:300]
         result.latency_ms = round((time.perf_counter() - started) * 1000, 2)
 
-        if log:
+        # "connection" = the server itself can't reach the model (e.g. PythonAnywhere free
+        # plan whitelist). The browser then calls the model directly and logs the real outcome.
+        if log and result.error != "connection":
             try:
                 ApiCallLog.objects.create(
                     user=self.user,

@@ -267,42 +267,107 @@ def summarize_page(request):
     })
 
 
+def _validate_text(request, text):
+    if not text:
+        return JsonResponse({"ok": False, "error": tr(request, "err_empty")}, status=400)
+    if len(text) > MAX_INPUT_CHARS:
+        return JsonResponse({"ok": False, "error": tr(request, "err_too_long")}, status=400)
+    return None
+
+
+def _fallback_response(request, result):
+    """Server could not reach the model (e.g. PythonAnywhere free-plan whitelist).
+    Tell the browser to call the model directly and send the result back to be saved."""
+    return JsonResponse({
+        "ok": False,
+        "fallback": True,
+        "base_url": AIConfig.get().effective_url,
+        "error": api_error_message(request, result),
+    }, status=502)
+
+
+def _save_single(request, text, params, file_name, d, latency_ms):
+    summary_text = (d.get("summary") or "").strip()
+    return Summary.objects.create(
+        user=request.user,
+        kind=Summary.KIND_SINGLE,
+        source_type=Summary.SOURCE_FILE if file_name else Summary.SOURCE_TEXT,
+        file_name=(file_name or "")[:255],
+        title=make_title(file_name or text),
+        input_text=text,
+        cleaned_text=str(d.get("cleaned_text") or "")[:MAX_INPUT_CHARS],
+        summary=summary_text[:MAX_INPUT_CHARS],
+        language=d.get("language") if d.get("language") in ("ar", "en", "mixed") else "unknown",
+        confidence=d.get("confidence") if isinstance(d.get("confidence"), (int, float)) else None,
+        input_words=word_count(text),
+        summary_words=word_count(summary_text),
+        latency_ms=d.get("latency_ms") if isinstance(d.get("latency_ms"), (int, float)) else latency_ms,
+        params=d.get("generation_config") if isinstance(d.get("generation_config"), dict) else params,
+        token_stats=d.get("token_stats") if isinstance(d.get("token_stats"), dict) else {},
+    )
+
+
+def _log_browser_call(request, endpoint, ok, latency_ms, status_code=None, error=""):
+    try:
+        latency_ms = float(latency_ms) if latency_ms is not None else None
+    except (TypeError, ValueError):
+        latency_ms = None
+    ApiCallLog.objects.create(
+        user=request.user, endpoint=str(endpoint)[:100], method="BROWSER",
+        status_code=status_code if isinstance(status_code, int) else None,
+        ok=bool(ok), latency_ms=latency_ms, error=str(error or "")[:1000],
+    )
+
+
 @login_required
 @require_POST
 def api_summarize(request):
     body = json_body(request)
     text = (body.get("text") or "").strip()
-    if not text:
-        return JsonResponse({"ok": False, "error": tr(request, "err_empty")}, status=400)
-    if len(text) > MAX_INPUT_CHARS:
-        return JsonResponse({"ok": False, "error": tr(request, "err_too_long")}, status=400)
+    bad = _validate_text(request, text)
+    if bad:
+        return bad
 
     client = SummarizerClient(user=request.user)
     params = clean_params(body.get("params"), defaults=client.config.default_params())
     result = client.summarize(text, params)
+    if result.error == "connection":
+        return _fallback_response(request, result)
     if not result.ok or not result.data.get("success", True):
         return JsonResponse({"ok": False, "error": api_error_message(request, result)}, status=502)
 
-    d = result.data
-    summary_text = (d.get("summary") or "").strip()
-    s = Summary.objects.create(
-        user=request.user,
-        kind=Summary.KIND_SINGLE,
-        source_type=Summary.SOURCE_FILE if body.get("file_name") else Summary.SOURCE_TEXT,
-        file_name=(body.get("file_name") or "")[:255],
-        title=make_title(body.get("file_name") or text),
-        input_text=text,
-        cleaned_text=d.get("cleaned_text") or "",
-        summary=summary_text,
-        language=d.get("language") if d.get("language") in ("ar", "en", "mixed") else "unknown",
-        confidence=d.get("confidence"),
-        input_words=word_count(text),
-        summary_words=word_count(summary_text),
-        latency_ms=d.get("latency_ms") or result.latency_ms,
-        params=d.get("generation_config") or params,
-        token_stats=d.get("token_stats") or {},
-    )
+    s = _save_single(request, text, params, body.get("file_name"), result.data, result.latency_ms)
     return JsonResponse({"ok": True, "result": summary_to_dict(request, s)})
+
+
+@login_required
+@require_POST
+def api_summarize_save(request):
+    """Browser-mode: the page called the model itself and sends the response here to be stored."""
+    body = json_body(request)
+    text = (body.get("text") or "").strip()
+    bad = _validate_text(request, text)
+    if bad:
+        return bad
+    d = body.get("data") if isinstance(body.get("data"), dict) else {}
+    latency = body.get("latency_ms")
+    _log_browser_call(request, "/api/v1/summarize", bool(d.get("summary")), latency)
+    if not d.get("summary"):
+        return JsonResponse({"ok": False, "error": tr(request, "err_api")}, status=400)
+    params = clean_params(body.get("params"), defaults=AIConfig.get().default_params())
+    s = _save_single(request, text, params, body.get("file_name"), d,
+                     latency if isinstance(latency, (int, float)) else None)
+    return JsonResponse({"ok": True, "result": summary_to_dict(request, s)})
+
+
+@login_required
+@require_POST
+def api_log_call(request):
+    """Browser-mode: record a direct call (tools / failures) in the monitoring log."""
+    body = json_body(request)
+    _log_browser_call(request, body.get("endpoint") or "?", body.get("ok"), body.get("latency_ms"),
+                      body.get("status"), body.get("error"))
+    return JsonResponse({"ok": True})
 
 
 # ---------------------------------------------------------------------------
@@ -318,62 +383,95 @@ def batch_page(request):
     })
 
 
-@login_required
-@require_POST
-def api_batch(request):
-    body = json_body(request)
+def _batch_texts(request, body):
     texts = [str(t).strip() for t in (body.get("texts") or []) if str(t).strip()]
     if not texts:
-        return JsonResponse({"ok": False, "error": tr(request, "err_empty")}, status=400)
+        return None, JsonResponse({"ok": False, "error": tr(request, "err_empty")}, status=400)
     if len(texts) > MAX_BATCH:
-        return JsonResponse({"ok": False, "error": tr(request, "err_batch_limit")}, status=400)
+        return None, JsonResponse({"ok": False, "error": tr(request, "err_batch_limit")}, status=400)
     if any(len(t) > MAX_INPUT_CHARS for t in texts):
-        return JsonResponse({"ok": False, "error": tr(request, "err_too_long")}, status=400)
+        return None, JsonResponse({"ok": False, "error": tr(request, "err_too_long")}, status=400)
+    return texts, None
 
-    client = SummarizerClient(user=request.user)
-    result = client.summarize_batch(texts, body.get("params"))
-    if not result.ok or not result.data.get("success", True):
-        return JsonResponse({"ok": False, "error": api_error_message(request, result)}, status=502)
 
+def _save_batch(request, texts, params, data, latency_ms):
     batch_id = uuid.uuid4()
-    rows = result.data.get("results") or []
-    total_latency = result.data.get("total_latency_ms") or result.latency_ms
+    rows = [r for r in (data.get("results") or []) if isinstance(r, dict)]
+    total_latency = data.get("total_latency_ms")
+    if not isinstance(total_latency, (int, float)):
+        total_latency = latency_ms or 0
     per_item_latency = round(total_latency / max(len(rows), 1), 2)
-    params = clean_params(body.get("params"), allowed=("max_length", "min_length", "num_beams"),
-                          defaults=client.config.default_params())
     saved = []
     for row in rows:
         idx = row.get("index", len(saved))
-        if not isinstance(idx, int) or idx >= len(texts):
-            idx = len(saved)
+        if not isinstance(idx, int) or idx >= len(texts) or idx < 0:
+            idx = min(len(saved), len(texts) - 1)
         src = texts[idx]
-        summary_text = (row.get("summary") or "").strip()
+        summary_text = str(row.get("summary") or "").strip()
         s = Summary.objects.create(
             user=request.user,
             kind=Summary.KIND_BATCH,
             batch_id=batch_id,
             title=make_title(src),
             input_text=src,
-            summary=summary_text,
+            summary=summary_text[:MAX_INPUT_CHARS],
             language=row.get("language") if row.get("language") in ("ar", "en", "mixed") else "unknown",
-            confidence=row.get("confidence"),
+            confidence=row.get("confidence") if isinstance(row.get("confidence"), (int, float)) else None,
             input_words=word_count(src),
             summary_words=word_count(summary_text),
             latency_ms=per_item_latency,
             params=params,
-            token_stats=row.get("token_stats") or {},
+            token_stats=row.get("token_stats") if isinstance(row.get("token_stats"), dict) else {},
         )
         item = summary_to_dict(request, s)
         item["index"] = idx
         saved.append(item)
-
-    return JsonResponse({
+    return {
         "ok": True,
         "batch_id": str(batch_id),
         "count": len(saved),
         "total_latency_ms": total_latency,
         "results": saved,
-    })
+    }
+
+
+@login_required
+@require_POST
+def api_batch(request):
+    body = json_body(request)
+    texts, bad = _batch_texts(request, body)
+    if bad:
+        return bad
+
+    client = SummarizerClient(user=request.user)
+    result = client.summarize_batch(texts, body.get("params"))
+    if result.error == "connection":
+        return _fallback_response(request, result)
+    if not result.ok or not result.data.get("success", True):
+        return JsonResponse({"ok": False, "error": api_error_message(request, result)}, status=502)
+
+    params = clean_params(body.get("params"), allowed=("max_length", "min_length", "num_beams"),
+                          defaults=client.config.default_params())
+    return JsonResponse(_save_batch(request, texts, params, result.data, result.latency_ms))
+
+
+@login_required
+@require_POST
+def api_batch_save(request):
+    """Browser-mode counterpart of api_batch."""
+    body = json_body(request)
+    texts, bad = _batch_texts(request, body)
+    if bad:
+        return bad
+    d = body.get("data") if isinstance(body.get("data"), dict) else {}
+    latency = body.get("latency_ms")
+    _log_browser_call(request, "/api/v1/summarize/batch", bool(d.get("results")), latency)
+    if not d.get("results"):
+        return JsonResponse({"ok": False, "error": tr(request, "err_api")}, status=400)
+    params = clean_params(body.get("params"), allowed=("max_length", "min_length", "num_beams"),
+                          defaults=AIConfig.get().default_params())
+    return JsonResponse(_save_batch(request, texts, params, d,
+                                    latency if isinstance(latency, (int, float)) else None))
 
 
 # ---------------------------------------------------------------------------
@@ -405,6 +503,8 @@ def api_tool(request, tool):
     else:
         return JsonResponse({"ok": False, "error": "unknown tool"}, status=404)
 
+    if result.error == "connection":
+        return _fallback_response(request, result)
     if not result.ok:
         return JsonResponse({"ok": False, "error": api_error_message(request, result)}, status=502)
     data = dict(result.data)
