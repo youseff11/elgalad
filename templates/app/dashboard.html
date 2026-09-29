@@ -1,0 +1,190 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_dashboard' %}{% endblock %}
+{% block page_title %}{% t 'hello' %} {{ user.first_name|default:user.username }}{% endblock %}
+{% block page_subtitle %}{% t 'dashboard_subtitle' %}{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  {% if user.is_staff %}
+  <div class="segmented" role="tablist">
+    <a href="?scope=me" class="{% if scope == 'me' %}active{% endif %}">{% t 'scope_me' %}</a>
+    <a href="?scope=all" class="{% if scope == 'all' %}active{% endif %}">{% t 'scope_all' %}</a>
+  </div>
+  {% endif %}
+  <div class="toolbar-end">
+    <a href="{% url 'batch' %}" class="btn btn-ghost">{% icon 'layers' 16 %} {% t 'nav_batch' %}</a>
+    <a href="{% url 'summarize' %}" class="btn btn-primary">{% icon 'sparkles' 16 %} {% t 'new_summary' %}</a>
+  </div>
+</div>
+
+<!-- KPI tiles -->
+<section class="kpi-grid">
+  <article class="kpi">
+    <div class="kpi-ico ico-blue">{% icon 'file' 20 %}</div>
+    <div class="kpi-body">
+      <span class="kpi-label">{% t 'kpi_total' %}</span>
+      <strong class="kpi-value">{{ kpi.total|num }}</strong>
+      <span class="kpi-foot">
+        {% if kpi.week_delta is not None %}
+          <b class="{% if kpi.week_delta >= 0 %}up{% else %}down{% endif %}">{% if kpi.week_delta >= 0 %}▲{% else %}▼{% endif %} {{ kpi.week_delta }}%</b>
+        {% endif %}
+        {{ kpi.this_week }} {% t 'this_week' %}
+      </span>
+    </div>
+  </article>
+  <article class="kpi">
+    <div class="kpi-ico ico-violet">{% icon 'text' 20 %}</div>
+    <div class="kpi-body">
+      <span class="kpi-label">{% t 'kpi_words' %}</span>
+      <strong class="kpi-value">{{ kpi.words_in|num }}</strong>
+      <span class="kpi-foot">{% t 'kpi_words_foot' %}</span>
+    </div>
+  </article>
+  <article class="kpi">
+    <div class="kpi-ico ico-teal">{% icon 'scissors' 20 %}</div>
+    <div class="kpi-body">
+      <span class="kpi-label">{% t 'kpi_compression' %}</span>
+      <strong class="kpi-value">{{ kpi.compression|pct:1 }}</strong>
+      <div class="meter" aria-hidden="true"><span style="width: {{ kpi.compression|num:0 }}%"></span></div>
+    </div>
+  </article>
+  <article class="kpi">
+    <div class="kpi-ico ico-amber">{% icon 'zap' 20 %}</div>
+    <div class="kpi-body">
+      <span class="kpi-label">{% t 'kpi_latency' %}</span>
+      <strong class="kpi-value">{{ kpi.avg_latency_s|num:2 }}<small>{% t 'sec' %}</small></strong>
+      <span class="kpi-foot">
+        {% if kpi.success_rate is not None %}{% t 'success_rate' %}: <b class="up">{{ kpi.success_rate|pct:1 }}</b>{% else %}{% t 'no_calls_yet' %}{% endif %}
+      </span>
+    </div>
+  </article>
+</section>
+
+{% if kpi.total == 0 %}
+<section class="card empty-hero">
+  <div class="empty-art">{% icon 'sparkles' 44 %}</div>
+  <h2>{% t 'empty_dashboard_title' %}</h2>
+  <p>{% t 'empty_dashboard_text' %}</p>
+  <a href="{% url 'summarize' %}" class="btn btn-primary btn-lg">{% icon 'sparkles' 18 %} {% t 'start_first_summary' %}</a>
+</section>
+{% endif %}
+
+<!-- charts row 1 -->
+<section class="grid grid-3-1">
+  <article class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% t 'chart_activity' %}</h3>
+        <p>{% t 'chart_activity_sub' %}</p>
+      </div>
+    </header>
+    <div class="chart-box"><canvas id="chartActivity" aria-label="{% t 'chart_activity' %}" role="img"></canvas></div>
+  </article>
+  <article class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% t 'chart_languages' %}</h3>
+        <p>{% t 'chart_languages_sub' %}</p>
+      </div>
+    </header>
+    <div class="chart-box chart-box-sm"><canvas id="chartLanguages" aria-label="{% t 'chart_languages' %}" role="img"></canvas></div>
+    <ul class="legend-list" id="langLegend"></ul>
+  </article>
+</section>
+
+<!-- charts row 2 -->
+<section class="grid grid-2">
+  <article class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% t 'chart_latency' %}</h3>
+        <p>{% t 'chart_latency_sub' %}</p>
+      </div>
+    </header>
+    <div class="chart-box"><canvas id="chartLatency" aria-label="{% t 'chart_latency' %}" role="img"></canvas></div>
+  </article>
+  <article class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% t 'chart_compression' %}</h3>
+        <p>{% t 'chart_compression_sub' %}</p>
+      </div>
+    </header>
+    <div class="chart-box"><canvas id="chartCompression" aria-label="{% t 'chart_compression' %}" role="img"></canvas></div>
+  </article>
+</section>
+
+<!-- recent + model card -->
+<section class="grid grid-3-1">
+  <article class="card card-flush">
+    <header class="card-head pad">
+      <div>
+        <h3>{% t 'recent_summaries' %}</h3>
+        <p>{% t 'recent_summaries_sub' %}</p>
+      </div>
+      <a href="{% url 'history' %}{% if scope == 'all' %}?scope=all{% endif %}" class="btn btn-ghost btn-sm">{% t 'view_all' %} {% icon 'arrow-right' 14 'flip-rtl' %}</a>
+    </header>
+    {% if recent %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{% t 'col_title' %}</th>
+            <th>{% t 'col_language' %}</th>
+            <th class="hide-sm">{% t 'col_words' %}</th>
+            <th class="hide-sm">{% t 'col_compression' %}</th>
+            <th>{% t 'col_date' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in recent %}
+          <tr class="row-link" data-href="{% url 'history_detail' s.pk %}">
+            <td>
+              <a href="{% url 'history_detail' s.pk %}" class="cell-title" dir="auto">{{ s.title|truncatechars:60 }}</a>
+              {% if scope == 'all' %}<small class="muted">@{{ s.user.username }}</small>{% endif %}
+            </td>
+            <td><span class="lang-tag lang-{{ s.language }}">{{ s.language|lang_label:LANG }}</span></td>
+            <td class="hide-sm mono">{{ s.input_words }} → {{ s.summary_words }}</td>
+            <td class="hide-sm mono">{{ s.compression|pct:0 }}</td>
+            <td class="muted nowrap">{{ s.created_at|timesince }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-inline">{% t 'no_summaries_yet' %}</div>
+    {% endif %}
+  </article>
+
+  <article class="card model-card">
+    <header class="card-head">
+      <div>
+        <h3>{% t 'model_card' %}</h3>
+        <p>{% t 'model_card_sub' %}</p>
+      </div>
+      <button class="icon-btn" data-health-refresh title="{% t 'refresh' %}">{% icon 'refresh' 16 %}</button>
+    </header>
+    <div class="model-status" data-health-box>
+      <div class="status-row"><span class="status-dot" data-health-dot></span><strong data-health-label>{% t 'checking' %}</strong></div>
+      <dl class="kv">
+        <dt>{% t 'architecture' %}</dt><dd class="mono" data-info="model_architecture">—</dd>
+        <dt>{% t 'version' %}</dt><dd class="mono" data-info="version">—</dd>
+        <dt>{% t 'languages_supported' %}</dt><dd data-info="supported_languages">—</dd>
+        <dt>{% t 'response_time' %}</dt><dd class="mono" data-info="latency">—</dd>
+      </dl>
+      <div class="endpoint mono" dir="ltr" title="{{ api_url }}">{{ api_url }}</div>
+    </div>
+    <a href="{% url 'api_status' %}" class="btn btn-ghost btn-block">{% icon 'activity' 16 %} {% t 'open_monitoring' %}</a>
+  </article>
+</section>
+
+{{ chart_data|json_script:"dashboard-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

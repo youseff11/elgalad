@@ -1,0 +1,101 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_api' %}{% endblock %}
+{% block page_title %}{% t 'api_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'api_subtitle' %}{% endblock %}
+
+{% block content %}
+<section class="card status-hero" data-health-box>
+  <div class="status-hero-main">
+    <div class="pulse" data-health-dot></div>
+    <div>
+      <span class="muted small">{% t 'model_status' %}</span>
+      <h2 data-health-label>{% t 'checking' %}</h2>
+      <div class="endpoint mono" dir="ltr">{{ api_url }}</div>
+    </div>
+  </div>
+  <dl class="kv kv-row">
+    <div><dt>{% t 'service' %}</dt><dd data-info="service">—</dd></div>
+    <div><dt>{% t 'architecture' %}</dt><dd class="mono" data-info="model_architecture">—</dd></div>
+    <div><dt>{% t 'version' %}</dt><dd class="mono" data-info="version">—</dd></div>
+    <div><dt>{% t 'languages_supported' %}</dt><dd data-info="supported_languages">—</dd></div>
+    <div><dt>{% t 'ping' %}</dt><dd class="mono" data-info="latency">—</dd></div>
+  </dl>
+  <div class="status-hero-actions">
+    <button class="btn btn-primary" data-health-refresh>{% icon 'refresh' 16 %} {% t 'check_now' %}</button>
+    {% if user.is_staff %}<a class="btn btn-ghost" href="{% url 'settings' %}?tab=ai">{% icon 'settings' 16 %} {% t 'change_endpoint' %}</a>{% endif %}
+    <a class="btn btn-ghost" href="{{ api_url }}/docs" target="_blank" rel="noopener">{% icon 'external' 16 %} Swagger</a>
+  </div>
+</section>
+
+<section class="kpi-grid">
+  <article class="kpi"><div class="kpi-ico ico-blue">{% icon 'server' 20 %}</div><div class="kpi-body"><span class="kpi-label">{% t 'calls_7d' %}</span><strong class="kpi-value">{{ agg.total|num }}</strong></div></article>
+  <article class="kpi"><div class="kpi-ico ico-teal">{% icon 'check-circle' 20 %}</div><div class="kpi-body"><span class="kpi-label">{% t 'success_rate' %}</span><strong class="kpi-value">{% if agg.rate is not None %}{{ agg.rate|pct:1 }}{% else %}—{% endif %}</strong><span class="kpi-foot" title="{% t 'success_rate_hint' %}">{% if agg.total %}{{ agg.ok }} {% t 'of_requests' %} {{ agg.total }} · {% endif %}{% t 'success_rate_hint' %}</span></div></article>
+  <article class="kpi"><div class="kpi-ico ico-red">{% icon 'alert' 20 %}</div><div class="kpi-body"><span class="kpi-label">{% t 'errors' %}</span><strong class="kpi-value">{{ agg.errors|num }}</strong></div></article>
+  <article class="kpi"><div class="kpi-ico ico-amber">{% icon 'clock' 20 %}</div><div class="kpi-body"><span class="kpi-label">{% t 'avg_latency' %}</span><strong class="kpi-value">{{ agg.avg_s|num:2 }}<small>{% t 'sec' %}</small></strong></div></article>
+</section>
+
+<section class="grid grid-2 stack-lg align-start">
+  <article class="card card-flush">
+    <header class="card-head pad"><div><h3>{% t 'endpoints' %}</h3><p>{% t 'endpoints_sub' %}</p></div></header>
+    {% if by_endpoint %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{% t 'endpoint' %}</th><th>{% t 'calls' %}</th><th>{% t 'success_rate' %}</th><th class="hide-sm">{% t 'avg_latency' %}</th></tr></thead>
+        <tbody>
+          {% for r in by_endpoint %}
+          <tr>
+            <td class="mono" dir="ltr">{{ r.endpoint }}</td>
+            <td class="mono">{{ r.total }}</td>
+            <td><span class="rate {% if r.rate >= 95 %}good{% elif r.rate >= 70 %}warn{% else %}bad{% endif %}">{{ r.rate|pct:0 }}</span></td>
+            <td class="mono hide-sm">{{ r.avg_s|num:2 }}{% t 'sec' %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="empty-inline">{% t 'no_calls_yet' %}</div>{% endif %}
+  </article>
+
+  <article class="card">
+    <header class="card-head"><div><h3>{% t 'latency_by_endpoint' %}</h3><p>{% t 'latency_by_endpoint_sub' %}</p></div></header>
+    <div class="chart-box"><canvas id="chartEndpoints" role="img" aria-label="{% t 'latency_by_endpoint' %}"></canvas></div>
+  </article>
+</section>
+
+<section class="card card-flush">
+  <header class="card-head pad"><div><h3>{% t 'recent_calls' %}</h3><p>{% t 'recent_calls_sub' %}</p></div></header>
+  {% if recent_logs %}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th>{% t 'col_date' %}</th><th>{% t 'endpoint' %}</th><th>{% t 'status' %}</th><th>{% t 'response_time' %}</th>{% if user.is_staff %}<th class="hide-sm">{% t 'user' %}</th>{% endif %}<th class="hide-sm">{% t 'error' %}</th></tr></thead>
+      <tbody>
+        {% for l in recent_logs %}
+        <tr>
+          <td class="muted nowrap">{{ l.created_at|date:"m-d H:i:s" }}</td>
+          <td class="mono" dir="ltr"><span class="method">{{ l.method }}</span> {{ l.endpoint }}</td>
+          <td>{% if l.ok %}<span class="rate good">{% icon 'check' 12 %} {{ l.status_code }}</span>{% else %}<span class="rate bad">{% icon 'alert' 12 %} {{ l.status_code|default:"—" }}</span>{% endif %}</td>
+          <td class="mono">{{ l.latency_ms|num:0 }} ms</td>
+          {% if user.is_staff %}<td class="hide-sm muted">{{ l.user.username|default:"—" }}</td>{% endif %}
+          <td class="hide-sm muted small" dir="auto">{{ l.error|truncatechars:60|default:"" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<div class="empty-inline">{% t 'no_calls_yet' %}</div>{% endif %}
+</section>
+
+{{ chart_endpoints|json_script:"endpoint-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  (function () {
+    var data = JSON.parse(document.getElementById("endpoint-data").textContent || "[]");
+    if (window.ElCharts) ElCharts.hbar("chartEndpoints", data, { unit: "s" });
+  })();
+</script>
+{% endblock %}

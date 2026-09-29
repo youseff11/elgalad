@@ -1,0 +1,19 @@
+{% extends "auth/base_auth.html" %}
+{% load ui %}
+{% block title %}{% t 'create_account' %}{% endblock %}
+{% block auth_content %}
+<h1>{% t 'register_title' %}</h1>
+<p class="muted">{% t 'register_sub' %}</p>
+
+<form method="post" class="form-grid" novalidate>
+  {% csrf_token %}
+  {% include "partials/field.html" with field=form.first_name label_key="f_first_name" %}
+  {% include "partials/field.html" with field=form.username label_key="f_username" %}
+  {% include "partials/field.html" with field=form.email label_key="f_email" full=True %}
+  {% include "partials/field.html" with field=form.password1 label_key="f_password" %}
+  {% include "partials/field.html" with field=form.password2 label_key="f_confirm_password" %}
+  <small class="muted full">{% t 'password_rules' %}</small>
+  <button type="submit" class="btn btn-primary btn-lg btn-block full">{% icon 'user' 18 %} {% t 'create_account' %}</button>
+</form>
+<p class="auth-switch">{% t 'have_account' %} <a href="{% url 'login' %}">{% t 'login' %}</a></p>
+{% endblock %}

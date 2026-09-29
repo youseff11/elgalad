@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block body_class %}auth-body{% endblock %}
+{% block body %}
+<div class="auth-shell">
+  <section class="auth-side" aria-hidden="true">
+    <div class="auth-side-inner">
+      <a href="{% url 'landing' %}" class="brand brand-light">
+        <img src="{% static 'img/logo.svg' %}" alt="" width="40" height="40">
+        <span class="brand-text"><strong>{{ SITE_NAME }}</strong><small>{% t 'brand_tagline_short' %}</small></span>
+      </a>
+      <div>
+        <h2>{% t 'auth_side_title' %}</h2>
+        <p>{% t 'auth_side_text' %}</p>
+        <div class="auth-quote" dir="auto">
+          <span class="lang-tag lang-ar">{% t 'lang_ar' %}</span>
+          <span class="lang-tag lang-en">{% t 'lang_en' %}</span>
+          <span class="lang-tag lang-mixed">{% t 'lang_mixed' %}</span>
+        </div>
+      </div>
+      <small>© {% now "Y" %} {{ SITE_NAME }}</small>
+    </div>
+  </section>
+
+  <section class="auth-main">
+    <div class="auth-top">
+      <a href="{% url 'landing' %}" class="btn btn-ghost btn-sm">{% icon 'arrow-left' 15 'flip-rtl' %} {% t 'back_home' %}</a>
+      <div class="topbar-actions">
+        <a class="chip-btn" href="{% url 'set_language' OTHER_LANG %}?next={{ request.get_full_path|urlencode }}">{% icon 'globe' 16 %}<span>{% if LANG == 'ar' %}EN{% else %}ع{% endif %}</span></a>
+        <button class="icon-btn" data-theme-toggle aria-label="{% t 'toggle_theme' %}"><span class="theme-ico-dark">{% icon 'moon' %}</span><span class="theme-ico-light">{% icon 'sun' %}</span></button>
+      </div>
+    </div>
+    <div class="auth-card">
+      {% block auth_content %}{% endblock %}
+    </div>
+  </section>
+</div>
+{% endblock %}

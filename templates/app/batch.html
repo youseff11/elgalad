@@ -1,0 +1,67 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_batch' %}{% endblock %}
+{% block page_title %}{% t 'batch_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'batch_subtitle' %}{% endblock %}
+
+{% block content %}
+<div id="batchApp" data-max="{{ max_batch }}">
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% icon 'layers' 18 %} {% t 'documents' %} <span class="badge badge-soft"><b data-doc-count>0</b> / {{ max_batch }}</span></h3>
+        <p>{% t 'batch_docs_sub' %}</p>
+      </div>
+      <div class="actions">
+        <label class="btn btn-ghost btn-sm">
+          {% icon 'upload' 15 %} {% t 'import_files' %}
+          <input type="file" accept=".txt,.md,.docx,.pdf" multiple hidden data-import>
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm" data-add-samples>{% icon 'wand' 15 %} {% t 'load_samples' %}</button>
+      </div>
+    </header>
+
+    <div class="doc-list" data-doc-list></div>
+
+    <button type="button" class="add-doc" data-add-doc>{% icon 'plus' 16 %} {% t 'add_document' %}</button>
+
+    <div class="batch-footer">
+      <div class="inline-params">
+        <label>{% t 'p_max_length' %}
+          <input type="number" class="input input-sm" data-bparam="max_length" min="16" max="512" value="{{ defaults.max_length }}">
+        </label>
+        <label>{% t 'p_min_length' %}
+          <input type="number" class="input input-sm" data-bparam="min_length" min="5" max="128" value="{{ defaults.min_length }}">
+        </label>
+        <label>{% t 'p_num_beams' %}
+          <input type="number" class="input input-sm" data-bparam="num_beams" min="1" max="8" value="{{ defaults.num_beams }}">
+        </label>
+      </div>
+      <button type="button" class="btn btn-primary btn-lg" data-run>
+        <span class="btn-label">{% icon 'zap' 18 %} {% t 'run_batch' %}</span>
+        <span class="btn-loading"><span class="spinner"></span> {% t 'processing' %}</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="card card-flush" data-results hidden>
+    <header class="card-head pad">
+      <div>
+        <h3>{% icon 'check-circle' 18 %} {% t 'batch_results' %}</h3>
+        <p data-results-meta></p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-export-csv>{% icon 'download' 15 %} CSV</button>
+        <a href="{% url 'history' %}?kind=batch" class="btn btn-ghost btn-sm">{% icon 'history' 15 %} {% t 'nav_history' %}</a>
+      </div>
+    </header>
+    <div class="batch-results" data-results-list></div>
+  </section>
+
+  <div class="alert alert-danger" data-error hidden>{% icon 'alert' 18 %} <span></span></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/batch.js' %}"></script>
+{% endblock %}

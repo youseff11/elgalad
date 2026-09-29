@@ -1,0 +1,41 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_users' %}{% endblock %}
+{% block page_title %}{% t 'users_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'users_subtitle' %}{% endblock %}
+
+{% block content %}
+<section class="card card-flush">
+  <header class="card-head pad">
+    <div><h3>{% icon 'users' 18 %} {% t 'all_users' %}</h3><p>{{ users|length }} {% t 'users_count' %}</p></div>
+    <a href="/admin/auth/user/" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">{% icon 'shield' 15 %} {% t 'nav_admin' %}</a>
+  </header>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr>
+        <th>{% t 'user' %}</th><th class="hide-sm">{% t 'f_email' %}</th><th>{% t 'kpi_total' %}</th>
+        <th class="hide-sm">{% t 'kpi_words' %}</th><th class="hide-sm">{% t 'last_activity' %}</th><th>{% t 'role' %}</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td><div class="user-cell"><span class="avatar sm">{{ u.first_name|default:u.username|slice:":1"|upper }}</span><div><strong>{{ u.get_full_name|default:u.username }}</strong><small class="muted">@{{ u.username }}</small></div></div></td>
+          <td class="hide-sm muted">{{ u.email|default:"—" }}</td>
+          <td class="mono">{{ u.n }}</td>
+          <td class="mono hide-sm">{{ u.words|default:0|num }}</td>
+          <td class="hide-sm muted">{% if u.last %}{{ u.last|timesince }}{% else %}—{% endif %}</td>
+          <td>{% if u.is_superuser %}<span class="badge badge-primary">{% t 'role_super' %}</span>{% elif u.is_staff %}<span class="badge badge-primary">{% t 'role_admin' %}</span>{% else %}<span class="badge badge-soft">{% t 'role_user' %}</span>{% endif %}</td>
+          <td>
+            {% if u != user and not u.is_superuser %}
+            <form method="post" action="{% url 'user_toggle_staff' u.pk %}">{% csrf_token %}
+              <button class="btn btn-ghost btn-sm">{% if u.is_staff %}{% t 'remove_admin' %}{% else %}{% t 'make_admin' %}{% endif %}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

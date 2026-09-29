@@ -1,0 +1,182 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_summarize' %}{% endblock %}
+{% block page_title %}{% t 'summarize_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'summarize_subtitle' %}{% endblock %}
+
+{% block content %}
+<div class="grid grid-2 align-start" id="summarizeApp">
+  <!-- ================= INPUT ================= -->
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% icon 'file' 18 %} {% t 'input_document' %}</h3>
+        <p>{% t 'input_document_sub' %}</p>
+      </div>
+      <div class="segmented segmented-sm" data-tabs="input">
+        <button type="button" class="active" data-tab="text">{% icon 'text' 14 %} {% t 'tab_text' %}</button>
+        <button type="button" data-tab="file">{% icon 'upload' 14 %} {% t 'tab_file' %}</button>
+      </div>
+    </header>
+
+    <div data-pane="file" hidden>
+      <label class="dropzone" data-dropzone>
+        <input type="file" accept=".txt,.md,.docx,.pdf" data-file-input hidden>
+        <span class="dz-ico">{% icon 'upload' 28 %}</span>
+        <strong>{% t 'dz_title' %}</strong>
+        <small>{% t 'dz_sub' %}</small>
+        <span class="dz-file" data-file-name></span>
+      </label>
+    </div>
+
+    <div class="field">
+      <div class="textarea-wrap">
+        <textarea id="inputText" class="input textarea" rows="13" dir="auto"
+                  maxlength="{{ max_chars }}" placeholder="{% t 'textarea_placeholder' %}"></textarea>
+        <div class="textarea-meta">
+          <span><b data-count-words>0</b> {% t 'words' %} · <b data-count-chars>0</b> {% t 'chars' %}</span>
+          <span class="lang-live" data-live-lang></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="samples">
+      <span class="muted">{% t 'try_sample' %}</span>
+      <button type="button" class="chip" data-sample="ar">{% t 'sample_ar' %}</button>
+      <button type="button" class="chip" data-sample="en">{% t 'sample_en' %}</button>
+      <button type="button" class="chip chip-ghost" data-clear>{% icon 'trash' 13 %} {% t 'clear' %}</button>
+    </div>
+
+    <details class="advanced" id="advanced">
+      <summary>{% icon 'settings' 16 %} {% t 'advanced_params' %} <span class="muted">— {% t 'advanced_params_sub' %}</span></summary>
+      <div class="params-grid">
+        <div class="param" data-param="max_length">
+          <label>{% t 'p_max_length' %} <output></output></label>
+          <input type="range" min="16" max="512" step="1">
+          <small>{% t 'p_max_length_help' %}</small>
+        </div>
+        <div class="param" data-param="min_length">
+          <label>{% t 'p_min_length' %} <output></output></label>
+          <input type="range" min="5" max="128" step="1">
+          <small>{% t 'p_min_length_help' %}</small>
+        </div>
+        <div class="param" data-param="num_beams">
+          <label>{% t 'p_num_beams' %} <output></output></label>
+          <input type="range" min="1" max="8" step="1">
+          <small>{% t 'p_num_beams_help' %}</small>
+        </div>
+        <div class="param" data-param="length_penalty">
+          <label>{% t 'p_length_penalty' %} <output></output></label>
+          <input type="range" min="0.1" max="3" step="0.1">
+          <small>{% t 'p_length_penalty_help' %}</small>
+        </div>
+        <div class="param" data-param="repetition_penalty">
+          <label>{% t 'p_repetition_penalty' %} <output></output></label>
+          <input type="range" min="1" max="2" step="0.05">
+          <small>{% t 'p_repetition_penalty_help' %}</small>
+        </div>
+        <div class="param" data-param="no_repeat_ngram_size">
+          <label>{% t 'p_no_repeat' %} <output></output></label>
+          <input type="range" min="0" max="5" step="1">
+          <small>{% t 'p_no_repeat_help' %}</small>
+        </div>
+      </div>
+      <div class="presets">
+        <span class="muted">{% t 'presets' %}</span>
+        <button type="button" class="chip" data-preset="short">{% t 'preset_short' %}</button>
+        <button type="button" class="chip" data-preset="balanced">{% t 'preset_balanced' %}</button>
+        <button type="button" class="chip" data-preset="detailed">{% t 'preset_detailed' %}</button>
+        <button type="button" class="chip chip-ghost" data-preset="default">{% icon 'refresh' 13 %} {% t 'reset' %}</button>
+      </div>
+    </details>
+
+    <div class="form-actions">
+      <span class="muted small hide-sm">{% t 'shortcut_hint' %}</span>
+      <button type="button" class="btn btn-primary btn-lg" data-submit>
+        <span class="btn-label">{% icon 'sparkles' 18 %} {% t 'generate_summary' %}</span>
+        <span class="btn-loading"><span class="spinner"></span> {% t 'generating' %}</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= OUTPUT ================= -->
+  <section class="card result-card sticky" data-result>
+    <header class="card-head">
+      <div>
+        <h3>{% icon 'sparkles' 18 %} {% t 'ai_summary' %}</h3>
+        <p>{% t 'ai_summary_sub' %}</p>
+      </div>
+      <div class="actions" data-result-actions hidden>
+        <button type="button" class="icon-btn" data-copy-target="#summaryText" title="{% t 'copy' %}">{% icon 'copy' 16 %}</button>
+        <a class="icon-btn" data-download href="#" title="{% t 'download' %}">{% icon 'download' 16 %}</a>
+        <a class="icon-btn" data-open href="#" title="{% t 'open_details' %}">{% icon 'external' 16 %}</a>
+      </div>
+    </header>
+
+    <!-- empty -->
+    <div class="result-empty" data-state="empty">
+      <div class="orb"></div>
+      <h4>{% t 'result_empty_title' %}</h4>
+      <p>{% t 'result_empty_text' %}</p>
+      <ol class="pipeline">
+        <li>{% icon 'languages' 16 %} {% t 'pipe_detect' %}</li>
+        <li>{% icon 'filter' 16 %} {% t 'pipe_clean' %}</li>
+        <li>{% icon 'hash' 16 %} {% t 'pipe_tokenize' %}</li>
+        <li>{% icon 'brain' 16 %} {% t 'pipe_generate' %}</li>
+      </ol>
+    </div>
+
+    <!-- loading -->
+    <div class="result-loading" data-state="loading" hidden>
+      <div class="progress-steps">
+        <div class="pstep" data-step="0">{% icon 'languages' 16 %} {% t 'pipe_detect' %}</div>
+        <div class="pstep" data-step="1">{% icon 'filter' 16 %} {% t 'pipe_clean' %}</div>
+        <div class="pstep" data-step="2">{% icon 'hash' 16 %} {% t 'pipe_tokenize' %}</div>
+        <div class="pstep" data-step="3">{% icon 'brain' 16 %} {% t 'pipe_generate' %}</div>
+      </div>
+      <div class="skeleton"><span></span><span></span><span></span><span class="short"></span></div>
+    </div>
+
+    <!-- error -->
+    <div class="result-error" data-state="error" hidden>
+      <div class="alert alert-danger">{% icon 'alert' 18 %} <span data-error-text></span></div>
+      <button type="button" class="btn btn-ghost" data-retry>{% icon 'refresh' 16 %} {% t 'retry' %}</button>
+    </div>
+
+    <!-- result -->
+    <div class="result-body" data-state="result" hidden>
+      <div class="result-badges">
+        <span class="lang-tag" data-r-lang></span>
+        <span class="badge" data-r-conf></span>
+        <span class="badge badge-soft" data-r-time></span>
+      </div>
+      <blockquote class="summary-text" id="summaryText" dir="auto" data-r-summary></blockquote>
+
+      <div class="stat-grid">
+        <div class="stat"><span>{% t 'original_words' %}</span><strong data-r-in>—</strong></div>
+        <div class="stat"><span>{% t 'summary_words' %}</span><strong data-r-out>—</strong></div>
+        <div class="stat"><span>{% t 'kpi_compression' %}</span><strong data-r-comp>—</strong></div>
+        <div class="stat"><span>{% t 'response_time' %}</span><strong data-r-lat>—</strong></div>
+      </div>
+
+      <div class="ratio-bar" aria-hidden="true"><span data-r-bar></span></div>
+      <p class="muted small ratio-caption" data-r-ratio></p>
+
+      <details class="collapse">
+        <summary>{% icon 'filter' 15 %} {% t 'cleaned_text' %}</summary>
+        <div class="pre" dir="auto" data-r-cleaned></div>
+      </details>
+      <details class="collapse">
+        <summary>{% icon 'settings' 15 %} {% t 'generation_config' %}</summary>
+        <div class="pre mono" dir="ltr" data-r-config></div>
+      </details>
+    </div>
+  </section>
+</div>
+
+{{ defaults|json_script:"param-defaults" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/summarize.js' %}"></script>
+{% endblock %}

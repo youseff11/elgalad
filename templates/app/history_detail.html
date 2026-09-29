@@ -1,0 +1,84 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{{ s.title|truncatechars:40 }}{% endblock %}
+{% block page_title %}{% t 'summary_details' %}{% endblock %}
+{% block page_subtitle %}#{{ s.pk }} · {{ s.created_at|date:"Y-m-d H:i" }}{% if user.is_staff and s.user != user %} · @{{ s.user.username }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <a href="{% url 'history' %}" class="btn btn-ghost">{% icon 'arrow-left' 16 'flip-rtl' %} {% t 'back_to_history' %}</a>
+  <div class="toolbar-end">
+    <button class="btn btn-ghost star-btn-lg {% if s.is_favorite %}on{% endif %}" data-fav-url="{% url 'history_favorite' s.pk %}">{% icon 'star' 16 %} <span>{% t 'favorite' %}</span></button>
+    <a href="{% url 'history_download' s.pk %}" class="btn btn-ghost">{% icon 'download' 16 %} {% t 'download' %}</a>
+    <form method="post" action="{% url 'history_delete' s.pk %}" data-confirm="{% t 'confirm_delete' %}">
+      {% csrf_token %}
+      <button class="btn btn-danger-ghost" type="submit">{% icon 'trash' 16 %} {% t 'delete' %}</button>
+    </form>
+  </div>
+</div>
+
+<section class="stat-strip">
+  <div class="stat"><span>{% t 'col_language' %}</span><strong><span class="lang-tag lang-{{ s.language }}">{{ s.language|lang_label:LANG }}</span></strong></div>
+  <div class="stat"><span>{% t 'confidence' %}</span><strong class="mono">{{ s.confidence|confpct }}</strong></div>
+  <div class="stat"><span>{% t 'original_words' %}</span><strong class="mono">{{ s.input_words|num }}</strong></div>
+  <div class="stat"><span>{% t 'summary_words' %}</span><strong class="mono">{{ s.summary_words|num }}</strong></div>
+  <div class="stat"><span>{% t 'kpi_compression' %}</span><strong class="mono">{{ s.compression|pct:1 }}</strong></div>
+  <div class="stat"><span>{% t 'response_time' %}</span><strong class="mono">{% if s.latency_s %}{{ s.latency_s|num:2 }}{% t 'sec' %}{% else %}—{% endif %}</strong></div>
+</section>
+
+<div class="grid grid-2 align-start">
+  <section class="card result-card">
+    <header class="card-head">
+      <div><h3>{% icon 'sparkles' 18 %} {% t 'ai_summary' %}</h3></div>
+      <button class="icon-btn" data-copy-target="#sumText" title="{% t 'copy' %}">{% icon 'copy' 16 %}</button>
+    </header>
+    <blockquote class="summary-text" id="sumText" dir="auto">{{ s.summary|linebreaksbr }}</blockquote>
+    {% if s.params %}
+    <details class="collapse">
+      <summary>{% icon 'settings' 15 %} {% t 'generation_config' %}</summary>
+      <div class="kv-chips" dir="ltr">
+        {% for k, v in s.params.items %}<span class="chip chip-static"><b>{{ k }}</b> {{ v|stringformat:"s" }}</span>{% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div>
+        <h3>{% icon 'file' 18 %} {% t 'original_text' %}</h3>
+        {% if s.file_name %}<p class="mono">{{ s.file_name }}</p>{% endif %}
+      </div>
+      <button class="icon-btn" data-copy-target="#origText" title="{% t 'copy' %}">{% icon 'copy' 16 %}</button>
+    </header>
+    <div class="original-text" id="origText" dir="auto">{{ s.input_text|linebreaksbr }}</div>
+    {% if s.cleaned_text %}
+    <details class="collapse">
+      <summary>{% icon 'filter' 15 %} {% t 'cleaned_text' %}</summary>
+      <div class="pre" dir="auto">{{ s.cleaned_text }}</div>
+    </details>
+    {% endif %}
+  </section>
+</div>
+
+{% if batch_items %}
+<section class="card card-flush">
+  <header class="card-head pad">
+    <div><h3>{% icon 'layers' 18 %} {% t 'same_batch' %}</h3><p>{{ batch_items|length }} {% t 'documents' %}</p></div>
+  </header>
+  <div class="table-wrap">
+    <table class="table">
+      <tbody>
+      {% for b in batch_items %}
+        <tr class="row-link" data-href="{% url 'history_detail' b.pk %}">
+          <td><a class="cell-title" dir="auto" href="{% url 'history_detail' b.pk %}">{{ b.title|truncatechars:70 }}</a></td>
+          <td><span class="lang-tag lang-{{ b.language }}">{{ b.language|lang_label:LANG }}</span></td>
+          <td class="mono hide-sm">{{ b.compression|pct:0 }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

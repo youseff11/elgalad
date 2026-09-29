@@ -1,0 +1,68 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_settings' %}{% endblock %}
+{% block page_title %}{% t 'settings_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'settings_subtitle' %}{% endblock %}
+
+{% block content %}
+<div class="settings-layout">
+  <nav class="settings-nav card">
+    <a href="?tab=profile" class="{% if tab == 'profile' %}active{% endif %}">{% icon 'user' 16 %} {% t 'tab_profile' %}</a>
+    <a href="?tab=password" class="{% if tab == 'password' %}active{% endif %}">{% icon 'lock' 16 %} {% t 'tab_password' %}</a>
+    {% if ai_form %}<a href="?tab=ai" class="{% if tab == 'ai' %}active{% endif %}">{% icon 'cpu' 16 %} {% t 'tab_ai' %}</a>{% endif %}
+  </nav>
+
+  <div>
+    {% if tab == 'profile' %}
+    <section class="card">
+      <header class="card-head"><div><h3>{% t 'tab_profile' %}</h3><p>{% t 'profile_sub' %}</p></div></header>
+      <form method="post" class="form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="profile">
+        {% include "partials/field.html" with field=profile_form.first_name label_key="f_first_name" %}
+        {% include "partials/field.html" with field=profile_form.last_name label_key="f_last_name" %}
+        {% include "partials/field.html" with field=profile_form.email label_key="f_email" full=True %}
+        <div class="form-actions full"><span class="muted small">@{{ user.username }} · {% t 'joined' %} {{ user.date_joined|date:"Y-m-d" }}</span><button class="btn btn-primary">{% icon 'check' 16 %} {% t 'save' %}</button></div>
+      </form>
+    </section>
+
+    {% elif tab == 'password' %}
+    <section class="card">
+      <header class="card-head"><div><h3>{% t 'tab_password' %}</h3><p>{% t 'password_sub' %}</p></div></header>
+      <form method="post" class="form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="password">
+        {% include "partials/field.html" with field=password_form.old_password label_key="f_old_password" full=True %}
+        {% include "partials/field.html" with field=password_form.new_password1 label_key="f_new_password" %}
+        {% include "partials/field.html" with field=password_form.new_password2 label_key="f_confirm_password" %}
+        <div class="form-actions full"><span></span><button class="btn btn-primary">{% icon 'lock' 16 %} {% t 'update_password' %}</button></div>
+      </form>
+    </section>
+
+    {% elif tab == 'ai' and ai_form %}
+    <section class="card">
+      <header class="card-head">
+        <div><h3>{% icon 'cpu' 18 %} {% t 'tab_ai' %}</h3><p>{% t 'ai_settings_sub' %}</p></div>
+        <span class="model-pill inline" data-health-pill><span class="dot"></span><small data-health-text>{% t 'checking' %}</small></span>
+      </header>
+      <div class="alert alert-info">{% icon 'alert' 16 %}
+        <span>{% t 'ai_url_hint' %} <code dir="ltr">{{ env_url }}</code></span>
+      </div>
+      <form method="post" class="form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="ai">
+        {% include "partials/field.html" with field=ai_form.base_url label_key="f_base_url" full=True help_key="f_base_url_help" %}
+        {% include "partials/field.html" with field=ai_form.timeout label_key="f_timeout" %}
+        {% include "partials/field.html" with field=ai_form.default_max_length label_key="p_max_length" %}
+        {% include "partials/field.html" with field=ai_form.default_min_length label_key="p_min_length" %}
+        {% include "partials/field.html" with field=ai_form.default_num_beams label_key="p_num_beams" %}
+        {% include "partials/field.html" with field=ai_form.default_length_penalty label_key="p_length_penalty" %}
+        {% include "partials/field.html" with field=ai_form.default_repetition_penalty label_key="p_repetition_penalty" %}
+        {% include "partials/field.html" with field=ai_form.default_no_repeat_ngram_size label_key="p_no_repeat" %}
+        <div class="form-actions full">
+          <span class="muted small mono" dir="ltr">{% t 'current' %}: {{ effective_url }}</span>
+          <button class="btn btn-primary">{% icon 'check' 16 %} {% t 'save' %}</button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

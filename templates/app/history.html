@@ -1,0 +1,84 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_history' %}{% endblock %}
+{% block page_title %}{% t 'history_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'history_subtitle' %}{% endblock %}
+
+{% block content %}
+<form class="filters card" method="get">
+  <div class="filter-search">
+    {% icon 'search' 16 %}
+    <input type="search" name="q" value="{{ filters.q }}" placeholder="{% t 'search_placeholder' %}" class="input">
+  </div>
+  <select name="lang" class="input select" onchange="this.form.submit()">
+    <option value="">{% t 'all_languages' %}</option>
+    <option value="ar" {% if filters.lang == 'ar' %}selected{% endif %}>{% t 'lang_ar' %}</option>
+    <option value="en" {% if filters.lang == 'en' %}selected{% endif %}>{% t 'lang_en' %}</option>
+    <option value="mixed" {% if filters.lang == 'mixed' %}selected{% endif %}>{% t 'lang_mixed' %}</option>
+  </select>
+  <select name="kind" class="input select" onchange="this.form.submit()">
+    <option value="">{% t 'all_types' %}</option>
+    <option value="single" {% if filters.kind == 'single' %}selected{% endif %}>{% t 'kind_single' %}</option>
+    <option value="batch" {% if filters.kind == 'batch' %}selected{% endif %}>{% t 'kind_batch' %}</option>
+  </select>
+  <label class="toggle">
+    <input type="checkbox" name="fav" value="1" {% if filters.fav == '1' %}checked{% endif %} onchange="this.form.submit()">
+    <span>{% icon 'star' 15 %} {% t 'favorites' %}</span>
+  </label>
+  {% if user.is_staff %}
+  <label class="toggle">
+    <input type="checkbox" name="scope" value="all" {% if filters.scope == 'all' %}checked{% endif %} onchange="this.form.submit()">
+    <span>{% icon 'users' 15 %} {% t 'scope_all' %}</span>
+  </label>
+  {% endif %}
+  <div class="filter-actions">
+    <button class="btn btn-ghost btn-sm" type="submit">{% icon 'filter' 15 %} {% t 'apply' %}</button>
+    <a class="btn btn-ghost btn-sm" href="{% url 'history_export' %}?{{ querystring }}">{% icon 'download' 15 %} {% t 'export_csv' %}</a>
+  </div>
+</form>
+
+<div class="result-count muted">{{ total }} {% t 'results_count' %}</div>
+
+{% if page_obj.object_list %}
+<div class="history-grid">
+  {% for s in page_obj %}
+  <article class="h-card">
+    <header>
+      <span class="lang-tag lang-{{ s.language }}">{{ s.language|lang_label:LANG }}</span>
+      {% if s.kind == 'batch' %}<span class="badge badge-soft">{% icon 'layers' 12 %} {% t 'kind_batch' %}</span>{% endif %}
+      {% if s.source_type == 'file' %}<span class="badge badge-soft">{% icon 'file' 12 %} {% t 'tab_file' %}</span>{% endif %}
+      <button class="star-btn {% if s.is_favorite %}on{% endif %}" data-fav-url="{% url 'history_favorite' s.pk %}" title="{% t 'favorite' %}">{% icon 'star' 16 %}</button>
+    </header>
+    <a href="{% url 'history_detail' s.pk %}" class="h-title" dir="auto">{{ s.title|truncatechars:80 }}</a>
+    <p class="h-summary" dir="auto">{{ s.summary|truncatechars:220 }}</p>
+    <footer>
+      <span class="mono" title="{% t 'col_words' %}">{% icon 'text' 13 %} {{ s.input_words }} → {{ s.summary_words }}</span>
+      <span class="mono" title="{% t 'kpi_compression' %}">{% icon 'scissors' 13 %} {{ s.compression|pct:0 }}</span>
+      {% if s.latency_s %}<span class="mono" title="{% t 'response_time' %}">{% icon 'clock' 13 %} {{ s.latency_s|num:2 }}{% t 'sec' %}</span>{% endif %}
+      <span class="muted h-date">{% if filters.scope == 'all' %}@{{ s.user.username }} · {% endif %}{{ s.created_at|date:"Y-m-d H:i" }}</span>
+    </footer>
+  </article>
+  {% endfor %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?{{ querystring }}{% if querystring %}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-ghost btn-sm">{% icon 'arrow-left' 14 'flip-rtl' %} {% t 'prev' %}</a>
+  {% endif %}
+  <span class="muted">{% t 'page' %} {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?{{ querystring }}{% if querystring %}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-ghost btn-sm">{% t 'next' %} {% icon 'arrow-right' 14 'flip-rtl' %}</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<section class="card empty-hero">
+  <div class="empty-art">{% icon 'history' 40 %}</div>
+  <h2>{% t 'history_empty_title' %}</h2>
+  <p>{% t 'history_empty_text' %}</p>
+  <a href="{% url 'summarize' %}" class="btn btn-primary">{% icon 'sparkles' 16 %} {% t 'new_summary' %}</a>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+{% load ui %}{% load l10n %}<div class="field{% if full %} full{% endif %}{% if field.errors %} has-error{% endif %}">
+  <label for="{{ field.id_for_label }}">{% if label_key %}{% t label_key %}{% else %}{{ field.label }}{% endif %}{% if field.field.required %} <span class="req">*</span>{% endif %}</label>
+  {% localize off %}{{ field }}{% endlocalize %}
+  {% if help_key %}<small class="help">{% t help_key %}</small>{% endif %}
+  {% for e in field.errors %}<small class="error">{{ e }}</small>{% endfor %}
+</div>

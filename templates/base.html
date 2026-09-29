@@ -1,0 +1,39 @@
+{% load static ui %}<!doctype html>
+<html lang="{{ LANG }}" dir="{{ DIR }}" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %} · {{ SITE_NAME }}</title>
+  <meta name="description" content="{% t 'meta_description' %}">
+  <link rel="icon" href="{% static 'img/logo.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    /* apply saved theme before paint (no flash) */
+    (function () {
+      try {
+        var t = localStorage.getItem("elgalad-theme");
+        if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% block body %}{% endblock %}
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  {% if messages %}
+    <script>
+      window.__FLASH = [{% for m in messages %}{ level: "{{ m.tags|escapejs }}", text: "{{ m|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
+    </script>
+  {% endif %}
+  {{ JS_I18N|json_script:"i18n-data" }}
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

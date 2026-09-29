@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block body_class %}app-body{% endblock %}
+{% block body %}
+<div class="app-shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <a href="{% url 'landing' %}" class="brand">
+        <img src="{% static 'img/logo.svg' %}" alt="" width="34" height="34">
+        <span class="brand-text">
+          <strong>{{ SITE_NAME }}</strong>
+          <small>{% t 'brand_tagline_short' %}</small>
+        </span>
+      </a>
+      <button class="icon-btn only-mobile" data-sidebar-close aria-label="close">{% icon 'x' %}</button>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">{% t 'nav_workspace' %}</div>
+      <a href="{% url 'dashboard' %}" class="nav-link {% if page == 'dashboard' %}active{% endif %}">{% icon 'dashboard' %}<span>{% t 'nav_dashboard' %}</span></a>
+      <a href="{% url 'summarize' %}" class="nav-link {% if page == 'summarize' %}active{% endif %}">{% icon 'sparkles' %}<span>{% t 'nav_summarize' %}</span><em class="nav-badge">AI</em></a>
+      <a href="{% url 'batch' %}" class="nav-link {% if page == 'batch' %}active{% endif %}">{% icon 'layers' %}<span>{% t 'nav_batch' %}</span></a>
+      <a href="{% url 'tools' %}" class="nav-link {% if page == 'tools' %}active{% endif %}">{% icon 'wand' %}<span>{% t 'nav_tools' %}</span></a>
+
+      <div class="nav-label">{% t 'nav_data' %}</div>
+      <a href="{% url 'history' %}" class="nav-link {% if page == 'history' %}active{% endif %}">{% icon 'history' %}<span>{% t 'nav_history' %}</span></a>
+      <a href="{% url 'api_status' %}" class="nav-link {% if page == 'api' %}active{% endif %}">{% icon 'activity' %}<span>{% t 'nav_api' %}</span></a>
+
+      <div class="nav-label">{% t 'nav_account' %}</div>
+      <a href="{% url 'settings' %}" class="nav-link {% if page == 'settings' %}active{% endif %}">{% icon 'settings' %}<span>{% t 'nav_settings' %}</span></a>
+      {% if user.is_staff %}
+      <a href="{% url 'users' %}" class="nav-link {% if page == 'users' %}active{% endif %}">{% icon 'users' %}<span>{% t 'nav_users' %}</span></a>
+      <a href="/admin/" class="nav-link" target="_blank" rel="noopener">{% icon 'shield' %}<span>{% t 'nav_admin' %}</span>{% icon 'external' 13 'nav-ext' %}</a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="model-pill" data-health-pill>
+        <span class="dot"></span>
+        <div>
+          <strong>{% t 'model_status' %}</strong>
+          <small data-health-text>{% t 'checking' %}</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" data-sidebar-close></div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" data-sidebar-open aria-label="menu">{% icon 'menu' %}</button>
+      <div class="topbar-title">
+        <h1>{% block page_title %}{% endblock %}</h1>
+        <p>{% block page_subtitle %}{% endblock %}</p>
+      </div>
+
+      <form class="top-search hide-sm" action="{% url 'history' %}" method="get" role="search">
+        {% icon 'search' 16 %}
+        <input type="search" name="q" placeholder="{% t 'search_placeholder' %}" aria-label="{% t 'search_placeholder' %}">
+      </form>
+
+      <div class="topbar-actions">
+        <a class="chip-btn" href="{% url 'set_language' OTHER_LANG %}?next={{ request.get_full_path|urlencode }}" title="{% t 'switch_language' %}">
+          {% icon 'globe' 16 %}<span>{% if LANG == 'ar' %}EN{% else %}ع{% endif %}</span>
+        </a>
+        <button class="icon-btn" data-theme-toggle aria-label="{% t 'toggle_theme' %}">
+          <span class="theme-ico-dark">{% icon 'moon' %}</span><span class="theme-ico-light">{% icon 'sun' %}</span>
+        </button>
+
+        <div class="dropdown" data-dropdown>
+          <button class="user-btn" data-dropdown-toggle>
+            <span class="avatar">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+            <span class="hide-sm user-name">{{ user.first_name|default:user.username }}</span>
+          </button>
+          <div class="dropdown-menu">
+            <div class="dropdown-head">
+              <strong>{{ user.get_full_name|default:user.username }}</strong>
+              <small>{{ user.email|default:"—" }}</small>
+              {% if user.is_staff %}<span class="badge badge-primary">{% t 'role_admin' %}</span>{% endif %}
+            </div>
+            <a href="{% url 'settings' %}">{% icon 'user' 16 %} {% t 'nav_settings' %}</a>
+            <a href="{% url 'history' %}?fav=1">{% icon 'star' 16 %} {% t 'favorites' %}</a>
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+              <button type="submit" class="danger-link">{% icon 'logout' 16 %} {% t 'logout' %}</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+      <span>© {% now "Y" %} {{ SITE_NAME }} — {% t 'footer_text' %}</span>
+      <span class="muted mono" dir="ltr">Django · Bilingual Seq2Seq</span>
+    </footer>
+  </div>
+</div>
+{% endblock %}

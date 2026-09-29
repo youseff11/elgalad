@@ -1,0 +1,10 @@
+ELGALAD - test account created while testing the site
+
+username: tester
+password: Tst-hic1Vd6_vwaK
+role    : admin (first registered account)
+
+To use your own account as admin:
+1) Register your account on the site.
+2) Log in as "tester" -> Users page -> "Make admin" next to your account
+   (or delete the tester user from /admin/ -> Users).

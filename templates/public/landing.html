@@ -1,0 +1,141 @@
+{% extends "public/base_public.html" %}
+{% load static ui %}
+{% block title %}{% t 'landing_title' %}{% endblock %}
+{% block public_content %}
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="hero-bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="grid-lines"></span></div>
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <span class="eyebrow">{% icon 'sparkles' 14 %} {% t 'hero_eyebrow' %}</span>
+      <h1>{% t 'hero_title_1' %} <span class="grad">{% t 'hero_title_2' %}</span></h1>
+      <p class="lead">{% t 'hero_lead' %}</p>
+      <div class="hero-cta">
+        {% if user.is_authenticated %}
+          <a href="{% url 'summarize' %}" class="btn btn-primary btn-lg">{% icon 'sparkles' 18 %} {% t 'new_summary' %}</a>
+          <a href="{% url 'dashboard' %}" class="btn btn-ghost btn-lg">{% icon 'dashboard' 18 %} {% t 'nav_dashboard' %}</a>
+        {% else %}
+          <a href="{% url 'register' %}" class="btn btn-primary btn-lg">{% t 'hero_cta' %} {% icon 'arrow-right' 18 'flip-rtl' %}</a>
+          <a href="{% url 'login' %}" class="btn btn-ghost btn-lg">{% icon 'login' 18 %} {% t 'login' %}</a>
+        {% endif %}
+      </div>
+      <ul class="hero-points">
+        <li>{% icon 'check' 16 %} {% t 'hero_point_1' %}</li>
+        <li>{% icon 'check' 16 %} {% t 'hero_point_2' %}</li>
+        <li>{% icon 'check' 16 %} {% t 'hero_point_3' %}</li>
+      </ul>
+    </div>
+
+    <!-- product preview -->
+    <div class="hero-visual" aria-hidden="true">
+      <div class="mock">
+        <div class="mock-bar"><i></i><i></i><i></i><span class="mono">summarize · ar ⇄ en</span></div>
+        <div class="mock-body">
+          <div class="mock-in" dir="rtl">
+            <span class="lang-tag lang-ar">{% t 'lang_ar' %}</span>
+            <p>أعلنت وزارة التعليم العالي والبحث العلمي عن إطلاق مبادرة وطنية شاملة لتطوير برامج الذكاء الاصطناعي وبناء القدرات الرقمية للطلاب والباحثين في جميع الجامعات…</p>
+          </div>
+          <div class="mock-arrow">{% icon 'sparkles' 18 %}</div>
+          <div class="mock-out" dir="rtl">
+            <p>مبادرة وطنية لتطوير برامج الذكاء الاصطناعي وبناء القدرات الرقمية في الجامعات.</p>
+            <div class="mock-stats"><span>−62%</span><span>0.98</span><span>1.4s</span></div>
+          </div>
+          <div class="mock-in" dir="ltr">
+            <span class="lang-tag lang-en">{% t 'lang_en' %}</span>
+            <p>Artificial intelligence and deep learning models have revolutionized modern natural language processing…</p>
+          </div>
+        </div>
+      </div>
+      <div class="float-card fc1"><span class="status-dot ok"></span> {% t 'model_online' %}</div>
+      <div class="float-card fc2">{% icon 'languages' 16 %} AR · EN · Mixed</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STRIP ================= -->
+<section class="container stats-strip">
+  <div><strong>2</strong><span>{% t 'strip_languages' %}</span></div>
+  <div><strong>32</strong><span>{% t 'strip_batch' %}</span></div>
+  <div><strong>6</strong><span>{% t 'strip_params' %}</span></div>
+  <div><strong>{{ total_summaries|num }}</strong><span>{% t 'strip_summaries' %}</span></div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">{% t 'nav_features' %}</span>
+      <h2>{% t 'features_title' %}</h2>
+      <p>{% t 'features_sub' %}</p>
+    </div>
+    <div class="feature-grid">
+      <article class="feature"><span class="f-ico ico-blue">{% icon 'brain' 22 %}</span><h3>{% t 'feat_1_t' %}</h3><p>{% t 'feat_1_d' %}</p></article>
+      <article class="feature"><span class="f-ico ico-violet">{% icon 'languages' 22 %}</span><h3>{% t 'feat_2_t' %}</h3><p>{% t 'feat_2_d' %}</p></article>
+      <article class="feature"><span class="f-ico ico-teal">{% icon 'layers' 22 %}</span><h3>{% t 'feat_3_t' %}</h3><p>{% t 'feat_3_d' %}</p></article>
+      <article class="feature"><span class="f-ico ico-amber">{% icon 'upload' 22 %}</span><h3>{% t 'feat_4_t' %}</h3><p>{% t 'feat_4_d' %}</p></article>
+      <article class="feature"><span class="f-ico ico-red">{% icon 'chart' 22 %}</span><h3>{% t 'feat_5_t' %}</h3><p>{% t 'feat_5_d' %}</p></article>
+      <article class="feature"><span class="f-ico ico-green">{% icon 'shield' 22 %}</span><h3>{% t 'feat_6_t' %}</h3><p>{% t 'feat_6_d' %}</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PIPELINE ================= -->
+<section class="section section-alt" id="pipeline">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">{% t 'nav_how' %}</span>
+      <h2>{% t 'pipeline_title' %}</h2>
+      <p>{% t 'pipeline_sub' %}</p>
+    </div>
+    <ol class="steps">
+      <li><span class="step-n">01</span>{% icon 'languages' 22 %}<h4>{% t 'step_1_t' %}</h4><p>{% t 'step_1_d' %}</p></li>
+      <li><span class="step-n">02</span>{% icon 'filter' 22 %}<h4>{% t 'step_2_t' %}</h4><p>{% t 'step_2_d' %}</p></li>
+      <li><span class="step-n">03</span>{% icon 'hash' 22 %}<h4>{% t 'step_3_t' %}</h4><p>{% t 'step_3_d' %}</p></li>
+      <li><span class="step-n">04</span>{% icon 'cpu' 22 %}<h4>{% t 'step_4_t' %}</h4><p>{% t 'step_4_d' %}</p></li>
+      <li><span class="step-n">05</span>{% icon 'sparkles' 22 %}<h4>{% t 'step_5_t' %}</h4><p>{% t 'step_5_d' %}</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= METRICS ================= -->
+<section class="section" id="metrics">
+  <div class="container metrics-wrap">
+    <div class="section-head start">
+      <span class="eyebrow">{% t 'nav_metrics' %}</span>
+      <h2>{% t 'metrics_title' %}</h2>
+      <p>{% t 'metrics_sub' %}</p>
+      <div class="metric-chips">
+        <span>ROUGE</span><span>BLEU</span><span>BERTScore</span><span>Precision</span><span>Recall</span><span>F1-score</span>
+      </div>
+    </div>
+    <div class="use-cases">
+      <h3>{% t 'use_cases' %}</h3>
+      <ul>
+        <li>{% icon 'check-circle' 18 %} {% t 'uc_1' %}</li>
+        <li>{% icon 'check-circle' 18 %} {% t 'uc_2' %}</li>
+        <li>{% icon 'check-circle' 18 %} {% t 'uc_3' %}</li>
+        <li>{% icon 'check-circle' 18 %} {% t 'uc_4' %}</li>
+        <li>{% icon 'check-circle' 18 %} {% t 'uc_5' %}</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="container">
+  <div class="cta-band">
+    <div>
+      <h2>{% t 'cta_title' %}</h2>
+      <p>{% t 'cta_sub' %}</p>
+    </div>
+    <a href="{% if user.is_authenticated %}{% url 'summarize' %}{% else %}{% url 'register' %}{% endif %}" class="btn btn-light btn-lg">{% t 'hero_cta' %} {% icon 'arrow-right' 18 'flip-rtl' %}</a>
+  </div>
+</section>
+
+<footer class="pub-footer">
+  <div class="container pub-footer-inner">
+    <div class="brand"><img src="{% static 'img/logo.svg' %}" alt="" width="28" height="28"><strong>{{ SITE_NAME }}</strong></div>
+    <span class="muted">© {% now "Y" %} {{ SITE_NAME }} — {% t 'footer_text' %}</span>
+  </div>
+</footer>
+{% endblock %}

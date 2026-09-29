@@ -1,0 +1,74 @@
+{% extends "app/base_app.html" %}
+{% load static ui %}
+{% block title %}{% t 'nav_tools' %}{% endblock %}
+{% block page_title %}{% t 'tools_title' %}{% endblock %}
+{% block page_subtitle %}{% t 'tools_subtitle' %}{% endblock %}
+
+{% block content %}
+<div id="toolsApp">
+  <div class="tool-tabs" role="tablist">
+    <button class="tool-tab active" data-tool="detect" role="tab">
+      <span class="tt-ico ico-blue">{% icon 'languages' 20 %}</span>
+      <span><strong>{% t 'tool_detect' %}</strong><small>{% t 'tool_detect_sub' %}</small></span>
+    </button>
+    <button class="tool-tab" data-tool="clean" role="tab">
+      <span class="tt-ico ico-teal">{% icon 'filter' 20 %}</span>
+      <span><strong>{% t 'tool_clean' %}</strong><small>{% t 'tool_clean_sub' %}</small></span>
+    </button>
+    <button class="tool-tab" data-tool="tokenize" role="tab">
+      <span class="tt-ico ico-violet">{% icon 'hash' 20 %}</span>
+      <span><strong>{% t 'tool_tokenize' %}</strong><small>{% t 'tool_tokenize_sub' %}</small></span>
+    </button>
+  </div>
+
+  <div class="grid grid-2 align-start">
+    <section class="card">
+      <header class="card-head">
+        <div>
+          <h3 data-tool-title>{% t 'tool_detect' %}</h3>
+          <p>{% t 'tools_input_sub' %}</p>
+        </div>
+        <select class="input select input-sm" data-lang-hint hidden aria-label="{% t 'language_hint' %}">
+          <option value="">{% t 'auto_detect' %}</option>
+          <option value="ar">{% t 'lang_ar' %}</option>
+          <option value="en">{% t 'lang_en' %}</option>
+        </select>
+      </header>
+      <textarea class="input textarea" rows="9" dir="auto" data-tool-input placeholder="{% t 'textarea_placeholder' %}"></textarea>
+      <div class="samples">
+        <span class="muted">{% t 'try_sample' %}</span>
+        <button type="button" class="chip" data-tsample="ar">{% t 'lang_ar' %}</button>
+        <button type="button" class="chip" data-tsample="en">{% t 'lang_en' %}</button>
+        <button type="button" class="chip" data-tsample="mixed">{% t 'lang_mixed' %}</button>
+        <button type="button" class="chip" data-tsample="html">HTML + {% t 'diacritics' %}</button>
+      </div>
+      <div class="form-actions">
+        <span></span>
+        <button type="button" class="btn btn-primary" data-run-tool>
+          <span class="btn-label">{% icon 'zap' 16 %} {% t 'run_tool' %}</span>
+          <span class="btn-loading"><span class="spinner"></span> {% t 'processing' %}</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="card" data-tool-output>
+      <header class="card-head">
+        <div>
+          <h3>{% t 'result' %}</h3>
+          <p data-tool-meta>{% t 'tool_result_empty' %}</p>
+        </div>
+      </header>
+      <div data-tool-result class="tool-result">
+        <div class="result-empty compact">
+          <div class="orb"></div>
+          <p>{% t 'tool_result_empty' %}</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/tools.js' %}"></script>
+{% endblock %}
